@@ -1,6 +1,7 @@
 from enum import Enum
 from caser_datasets.sequential_recommender import SequentialRecommenderDataset
 from caser_datasets.url_zipped import URLZippedDataset
+from caser_datasets.utils import DatasetDescription
 import os
 import subprocess
 import chardet
@@ -12,7 +13,7 @@ import polars as pl
 class MovieLensDataset(URLZippedDataset, SequentialRecommenderDataset):
     class Datasets(Enum):
         #TODO add other datasets
-        MOVIE_LENS_1M = URLZippedDataset.DatasetDescription(
+        MOVIE_LENS_1M = DatasetDescription(
             url= "https://files.grouplens.org/datasets/movielens/ml-1m.zip",
             name  = "MovieLens1M"
         )
@@ -21,7 +22,7 @@ class MovieLensDataset(URLZippedDataset, SequentialRecommenderDataset):
     _ITEMS_RAW_FILE: str = "ml-1m/movies.dat"
     _USERS_RAW_FILE: str = "ml-1m/users.dat"
 
-    def _preprocess_data(self) -> None:
+    def _preprocess_data_inner(self) -> None:
         """Main method to handle data preprocessing and file output."""
         delimiters = []
         for filename in [self._DATA_RAW_FILE, self._ITEMS_RAW_FILE, self._USERS_RAW_FILE]:
@@ -120,9 +121,10 @@ class MovieLensDataset(URLZippedDataset, SequentialRecommenderDataset):
 
     def __init__(
             self,
-            dataset_to_use: URLZippedDataset.DatasetDescription,
+            dataset_to_use: DatasetDescription,
             cold_start_count: int = 5,
-            base_dir: Optional[str] = None
+            base_dir: Optional[str] = None,
+            **kwargs
     ):
         URLZippedDataset.__init__(self, dataset_to_use, base_dir=base_dir)
-        SequentialRecommenderDataset.__init__(self, cold_start_count, dataset_to_use.name, base_dir=base_dir)
+        SequentialRecommenderDataset.__init__(self, cold_start_count, dataset_to_use, base_dir=base_dir, **kwargs)

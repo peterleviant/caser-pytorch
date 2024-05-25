@@ -8,24 +8,19 @@ import shutil
 
 import urllib.request
 
-from caser_datasets.utils import apply_action_with_flag, get_data_dir
+from caser_datasets.utils import apply_action_with_flag, get_data_dir, DatasetDescription
 
 class URLZippedDataset(Dataset):
-    class DatasetDescription(NamedTuple):
-        name: str
-        url: str
-        mirror_url: Optional[str] = None
-    
     _DOWNLOADED_FLAG: str = "__data_downloaded"
 
     def __init__(
             self,
-            dataset_description: 'URLZippedDataset.DatasetDescription',
+            dataset_description: DatasetDescription,
             base_dir: Optional[str] = None,
         ) -> None:
         data_dir = get_data_dir(dataset_description.name, base_dir)
         none_action = lambda dataset_name, data_dir: None
-        apply_action_with_flag(data_dir, dataset_description.name, self._download_data, none_action, self._DOWNLOADED_FLAG)
+        apply_action_with_flag(data_dir, dataset_description, self._download_data, none_action, self._DOWNLOADED_FLAG)
 
     def _unzip_gz(self, file_path: str) -> None:
         """
@@ -80,7 +75,7 @@ class URLZippedDataset(Dataset):
             urllib.request.urlretrieve(url, filename)
             return filename
 
-    def _download_data(self, dataset_description: 'URLZippedDataset.DatasetDescription', data_dir: str) -> None:
+    def _download_data(self, dataset_description: DatasetDescription, data_dir: str) -> None:
         """
         Downloads an archive file from a url into a given directory, unzips it there into a new directory if does not
         already exists and then deletes the original file.
@@ -97,12 +92,14 @@ class URLZippedDataset(Dataset):
         # Download the zip file.
         try:
             filename: str = self._download_file(dataset_description.url, data_dir)
+            self._unzip_file(filename, data_dir)
             print(f"Downloaded file from {dataset_description.url}")
         except:
             try:
+                os.remove(filename)
                 filename: str = self._download_file(dataset_description.mirror_url, data_dir)
+                self._unzip_file(filename, data_dir)
                 print(f"Downloaded file from mirror {dataset_description.mirror_url}")
             except Exception as e:
                 raise RuntimeError("Failed to download dataset") from e
-        self._unzip_file(filename, data_dir)
         print(f"Data for dataset {dataset_description.name} extracted into {data_dir}")

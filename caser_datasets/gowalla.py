@@ -3,18 +3,19 @@ import os
 from typing import Dict, Optional, Tuple
 from caser_datasets.sequential_recommender import SequentialRecommenderDataset
 from caser_datasets.url_zipped import URLZippedDataset
+from caser_datasets.utils import DatasetDescription
 from typing import Optional
 import polars as pl
 
 
 class GowallaDataset(URLZippedDataset, SequentialRecommenderDataset):
     class Datasets(Enum):
-        GOWALLA_CHECK_IN = URLZippedDataset.DatasetDescription(
+        GOWALLA_CHECK_IN = DatasetDescription(
             url = "https://snap.stanford.edu/data/loc-gowalla_totalCheckins.txt.gz",
             name = "GowallaCheckIns"
         )
 
-    _DATA_RAW_FILE: str = 'data_format1/user_log_format1.csv'
+    _DATA_RAW_FILE: str = 'loc-gowalla_totalCheckins.txt'
 
     def _preprocess_data_inner(self) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, Dict[str, pl.DataFrame]]:
         """Main method to handle data preprocessing and file output."""
@@ -32,9 +33,9 @@ class GowallaDataset(URLZippedDataset, SequentialRecommenderDataset):
 
     def __init__(
             self,
-            dataset_to_use: URLZippedDataset.DatasetDescription,
+            dataset_to_use: DatasetDescription,
             cold_start_count: int = 5,
-            base_dir: Optional[str] = None
+            base_dir: Optional[str] = None, **kwargs
     ):
         URLZippedDataset.__init__(self, dataset_to_use, base_dir=base_dir)
-        SequentialRecommenderDataset.__init__(self, cold_start_count, dataset_to_use.name, base_dir=base_dir)
+        SequentialRecommenderDataset.__init__(self, cold_start_count, dataset_to_use, base_dir=base_dir, **kwargs)

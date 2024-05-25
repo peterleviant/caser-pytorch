@@ -6,11 +6,12 @@ import polars as pl
 
 from caser_datasets.sequential_recommender import SequentialRecommenderDataset
 from caser_datasets.url_zipped import URLZippedDataset
+from caser_datasets.utils import DatasetDescription
 
 class FoursquareDataset(URLZippedDataset, SequentialRecommenderDataset):
     class Datasets(Enum):
         #TODO add other datasets
-        FOURSQUARE_GLOBAL_CHECK_IN = URLZippedDataset.DatasetDescription(
+        FOURSQUARE_GLOBAL_CHECK_IN = DatasetDescription(
             name = "FourSquareGlobalScaleCheckIn",
             url = "https://drive.google.com/file/d/0BwrgZ-IdrTotZ0U0ZER2ejI3VVk/view?resourcekey=0-rlHp_JcRyFAxN7v5OAGldw",
             mirror_url = "https://drive.google.com/uc?id=1oDfzhVRtiqowqhWrUPutRwgXI9tUTV3m"
@@ -21,7 +22,7 @@ class FoursquareDataset(URLZippedDataset, SequentialRecommenderDataset):
     _METADATA_RAW_FILE: str = 'dataset_TIST2015_Cities.txt'
 
     def _preprocess_data_inner(self) -> Tuple[pl.DataFrame, pl.DataFrame, pl.DataFrame, Dict[str, pl.DataFrame]]:
-        city_data, items, data = self._read_city_data(), self._read_poi_data, self._read_checkins_data()
+        city_data, items, data = self._read_city_data(), self._read_poi_data(), self._read_checkins_data()
         all_city_types, all_venue_categories, all_country_codes, all_venues = self._create_unique_mappings(city_data, items, data)
         city_data, items, data = self._join_and_clean_data(city_data, items, data, all_city_types, all_venue_categories, all_country_codes, all_venues)
 
@@ -37,16 +38,6 @@ class FoursquareDataset(URLZippedDataset, SequentialRecommenderDataset):
         return users, items, data, metadata
     
     def _remove_raw_data(self) -> None:
-        self._cleanup_directory()
-
-    def _preprocess_data(self) -> None:
-        """Main method to handle data preprocessing and file output."""
-        df_city = self._read_city_data()
-        df_poi = self._read_poi_data()
-        df_ci = self._read_checkins_data()
-        all_city_types, all_venue_categories, all_country_codes, all_venues = self._create_unique_mappings(df_city, df_poi, df_ci)
-        df_city, df_poi, df_ci = self._join_and_clean_data(df_city, df_poi, df_ci, all_city_types, all_venue_categories, all_country_codes, all_venues)
-        self._write_output_files(df_city, df_poi, df_ci, all_city_types, all_venue_categories, all_country_codes, all_venues)
         self._cleanup_directory()
 
     def _read_city_data(self) -> pl.DataFrame:
@@ -90,9 +81,9 @@ class FoursquareDataset(URLZippedDataset, SequentialRecommenderDataset):
 
     def __init__(
             self,
-            dataset_to_use: URLZippedDataset.DatasetDescription,
+            dataset_to_use: DatasetDescription,
             cold_start_count: int = 5,
-            base_dir: Optional[str] = None
+            base_dir: Optional[str] = None, **kwargs
     ):
         URLZippedDataset.__init__(self, dataset_to_use, base_dir=base_dir)
-        SequentialRecommenderDataset.__init__(self, cold_start_count, dataset_to_use.name, base_dir=base_dir)
+        SequentialRecommenderDataset.__init__(self, cold_start_count, dataset_to_use, base_dir=base_dir, **kwargs)
