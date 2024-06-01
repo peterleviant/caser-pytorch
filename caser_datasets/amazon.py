@@ -27,13 +27,13 @@ class AmazonDataset(HuggingFaceDataset, SequentialRecommenderDataset):
 
     def __init__(
             self,
-            split: str = "full",
+            hf_split: str = "full",
             dataset_name: Optional[str] = None,
             cold_start_count: int = 5,
             base_dir: Optional[str] = None,
             **kwargs
         ):
         HuggingFaceDataset.__init__(
-            self, self.DATASET_PATH, split, f"0core_rating_only_{dataset_name}", trust_remote_code = True, **kwargs)
+            self, self.DATASET_PATH, hf_split, f"0core_rating_only_{dataset_name}", trust_remote_code = True, **kwargs)
         SequentialRecommenderDataset.__init__(self, cold_start_count, DatasetDescription(name=f"amazon/{dataset_name}"), base_dir=base_dir,
          **kwargs)

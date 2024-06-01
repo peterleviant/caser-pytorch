@@ -6,6 +6,67 @@ from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 from typing import Dict, Any, Type
+import torch
+from torch.utils.data import DataLoader
+from torch.optim import Adam
+from caser_datasets.sequential_recommender import SequentialRecommenderDataModule
+from utils.trainer import Trainer
+from models.caser import Caser, CaserCriterion
+from caser_datasets.movielens import MovielensDataset
+from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import Callback
+from sklearn.base import BaseEstimator, RegressorMixin
+
+def get_early_stopping_callback() -> EarlyStopping:
+    return EarlyStopping(
+        monitor='val_loss', patience=self.hparams.training_config.es_patience, mode='min', 
+        verbose=True, min_delta=self.hparams.training_config.es_min_delta
+    )
+
+class MetricsCallback(Callback):
+    def __init__(self):
+        super().__init__()
+        self.train_metrics = []
+        self.val_metrics = []
+        self.test_metrics = []
+
+    def on_train_epoch_end(self, trainer, pl_module):
+        # Collect the training metrics
+        self.train_metrics.append(trainer.callback_metrics)
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        # Collect the validation metrics
+        self.val_metrics.append(trainer.callback_metrics)
+
+    def on_test_epoch_end(self, trainer, pl_module):
+        # Collect the test metrics
+        self.test_metrics.append(trainer.callback_metrics)
+
+class GSRunner(BaseEstimator, RegressorMixin):
+    def __init__(
+            self,
+            recommender_data_module: SequentialRecommenderDataModule,
+            model: Type[Caser],
+            model_fixed_kwargs: Dict[str, Any],
+            trainer_kwargs: Dict[str, Any]
+        ): 
+        self.data_module = recommender_data_module
+        self.model_fixed_kwargs = model_fixed_kwargs
+        self.model = model
+        self.trainer_kwargs = trainer_kwargs
+
+    def run(self):
+        pass
+
+    def single_run(self, gs_kwargs: Dict[str, Any]) -> float:
+        model = self.model.from_kwargs(**self.model_fixed_kwargs, **gs_kwargs)
+        trainer = Trainer(
+            callbacks=[get_early_stopping_callback(), metrics_callback],
+            **self.trainer_kwargs,
+            gpus=1 if self.device_ == "cuda" else 0
+        )
+        trainer.fit(model, self.data_module)
+        return metrics_callback.val_aggregated_metric
 
 class Trainer:
     def __init__(self, model, train_loader, val_loader, criterion, optimizer: Type[optim.Optimizer], optimizer_kwargs: Dict[str, Any], metrics=None, predict_fn=None, log_dir='./logs', device="cpu"):
